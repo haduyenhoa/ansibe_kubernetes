@@ -1,2 +1,76 @@
 # ansibe_kubernetes
 Use Ansibe to setup kubernetes cluster
+
+- Prepare Linux machine, can connect via SSH, using .pem file. The pem file must have the permission right = 600: `chmod 600 ...`
+- Update inbound network settings as described in: https://kubernetes.io/docs/setup/production-environment/tools/kubeadm/install-kubeadm/#before-you-begin
+- do not specify "ip" in hosts.yaml to avoid issue with ipv6 address
+
+Apply the playbook:
+
+```
+Activate the venv:
+$ source ./vietsearch/env/bin/activate
+
+```
+
+declare -a IPS=(18.207.129.157 3.235.143.75 3.226.244.135 3.236.114.214)
+
+to avod host checking:
+
+`export ANSIBLE_HOST_KEY_CHECKING=false`
+
+
+```
+# Deploy Kubespray with Ansible Playbook - run the playbook as root
+# The option `--become` is required, as for example writing SSL keys in /etc/,
+# installing packages and interacting with various systemd daemons.
+# Without --become the playbook will fail to run!
+$ ansible-playbook -i vietsearch-cluster/inventory/vietsearch/hosts.yaml  --become --become-user=root ./kubespray/cluster.yml
+```
+
+Scaling, upgradeing nodes:
+https://github.com/kubernetes-sigs/kubespray/blob/master/docs/nodes.md
+
+
+- Dashboard token:
+> kubectl -n kubernetes-dashboard describe secret $(kubectl -n kubernetes-dashboard get secret | grep admin-user | awk '{print $1}')
+
+Dashboard address: 
+https://3.237.4.177:6443/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/cluster?namespace=default
+
+
+1. To get admin.conf
+
+ssh $USERNAME@$IP_CONTROLLER_0
+USERNAME=$(whoami)
+sudo chown -R $USERNAME:$USERNAME /etc/kubernetes/admin.conf
+exit
+
+scp $USERNAME@$IP_CONTROLLER_0:/etc/kubernetes/admin.conf kubespray-do.conf
+
+
+then:
+`export KUBECONFIG=$PWD/kubespray-do.conf`
+
+
+`kubectl get nodes`
+
+
+2. To start dashboard
+- add service account & apply cluster role binding
+`$ kubectl -n vs-infra apply -f inventory/vietsearch/app/service-account.yaml`
+`$ kubectl -n vs-infra apply -f inventory/vietsearch/app/cluster-role-binding`
+- get token:
+
+`$ kubectl -n vs-infra describe secret $(kubectl -n kube-system get secret | grep admin-user | awk '{print $1}')`
+
+- start proxy
+`$ kubectl -n vs-infra proxy`
+Dashboard:
+http://127.0.0.1:8001/api/v1/namespaces/kubernetes-dashboard/services/https:kubernetes-dashboard:/proxy/#/login
+
+-> need to change to namespace vs-infra once logged in
+
+eyJhbGciOiJSUzI1NiIsImtpZCI6ImlZMy01UzJReHJlUXlRNGdsaEtSUVdfTmx2WHNMYmJ0TVd2NUFNRGRUbXMifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJ2cy1pbmZyYSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJkZWZhdWx0LXRva2VuLXh0MmRtIiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImRlZmF1bHQiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIyNDhkNjkxMi1lMWEyLTQ0MjUtOGUyMS0wMGVmOTA1NTYyZWYiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6dnMtaW5mcmE6ZGVmYXVsdCJ9.Rt2Qd8DmgOfZEm3gdTrZNOrUhYcmycA_syHELjJHjOfYvBvnpi07uKPUdTJlm0AfdGPSJyhfjkfSJRhbzx11OFDpxESr501pJcGC45rtXN-yfWW71vLrp1rUfm3FMvd3SmOts413iLJwk4go83gUY6ovQe-AS5ICgHETRchX92vAmq7ug3e8W6SmT8lirUC9ITlj8OvWXmHKkmhEcIP6lJ7rPzz8UfJjCWSsHaqahXPuLPyRkTa8qv-rFhYiEuKecgga6vXa5_o1Du9UK96z7M78Z8SqNJ8Ym-fj0264yHyj44OQ3dr0Cj0wiL7eubW6gowyaiJh73NoV7vRWaJTnw
+
+eyJhbGciOiJSUzI1NiIsImtpZCI6ImlZMy01UzJReHJlUXlRNGdsaEtSUVdfTmx2WHNMYmJ0TVd2NUFNRGRUbXMifQ.eyJpc3MiOiJrdWJlcm5ldGVzL3NlcnZpY2VhY2NvdW50Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9uYW1lc3BhY2UiOiJ2cy1pbmZyYSIsImt1YmVybmV0ZXMuaW8vc2VydmljZWFjY291bnQvc2VjcmV0Lm5hbWUiOiJhZG1pbi11c2VyLXRva2VuLW1nbTg5Iiwia3ViZXJuZXRlcy5pby9zZXJ2aWNlYWNjb3VudC9zZXJ2aWNlLWFjY291bnQubmFtZSI6ImFkbWluLXVzZXIiLCJrdWJlcm5ldGVzLmlvL3NlcnZpY2VhY2NvdW50L3NlcnZpY2UtYWNjb3VudC51aWQiOiIxNzQ2NTNhYi1jZGUxLTRmYzEtYWNkMi0wYjZkZmVlYTI4YjAiLCJzdWIiOiJzeXN0ZW06c2VydmljZWFjY291bnQ6dnMtaW5mcmE6YWRtaW4tdXNlciJ9.X8wLmoAAyRbZmP8kbcmqq04TiJMJg8eFjnhG3SZf9rMt_A6yKpLT2r7ar1GyKFbQ7Tp2mFhWjIMPLIyc-Jf4GsHIycI3bzBvkGn4njheFkT0O8Qd0KLgtYGCUwm83LoM_R3RyXbXO0QqdlimGidubZwjUcQX_IYZi085Ey4UReWQSyn8cjSxkeZChiybpv3VYy3Jo9qZ61oICuOYTs0-pT24wNIeADhuQUgTdUH56gubSSm7JsYr36lF-hCKdlGcpvQZvJW_WdHcCbsF58yVPFxOYCqNNqL8AFun7ufzFVpjH3SN41Sii1XaO_Dy2d6wt6930ZVG-OisVsa3-YFNdA

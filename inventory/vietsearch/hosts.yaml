@@ -1,0 +1,51 @@
+all:
+  hosts:
+    node1:
+      ansible_host: 18.207.129.157
+      access_ip: 18.207.129.157
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ~/vietsearch_keys/es.vs.clusters.pem
+    node2:
+      ansible_host: 3.239.95.222
+      access_ip: 3.239.95.222
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ~/vietsearch_keys/es.vs.clusters.pem
+    node3:
+      ansible_host: 3.235.143.75
+      access_ip: 3.235.143.75
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ~/vietsearch_keys/es.vs.clusters.pem
+    node4:
+      ansible_host: 3.226.244.135
+      access_ip: 3.226.244.135
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ~/vietsearch_keys/es.vs.clusters.pem
+    node5:
+      ansible_host: 3.236.114.214
+      access_ip: 3.236.114.214
+      ansible_user: ubuntu
+      ansible_ssh_private_key_file: ~/vietsearch_keys/es.vs.clusters.pem
+  children:
+    kube-master:
+      hosts:
+        node1:
+        node2:
+        node3:
+    kube-node:
+      hosts:
+        node1:
+        node2:
+        node3:
+        node4:
+        node5:
+    etcd:
+      hosts:
+        node1:
+        node2:
+        node3:
+    k8s-cluster:
+      children:
+        kube-master:
+        kube-node:
+    calico-rr:
+      hosts: {}
