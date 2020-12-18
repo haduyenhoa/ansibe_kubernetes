@@ -1,2 +1,5 @@
 env
 inventory/vietsearch/secrets
+inventory/vietsearch/artifacts
+inventory/vietsearch/credentials
+logs.txt

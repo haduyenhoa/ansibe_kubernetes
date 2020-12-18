@@ -44,7 +44,7 @@
 # - y.y.y.y/32
 
 # Choose data store type for calico: "etcd" or "kdd" (kubernetes datastore)
-# calico_datastore: "etcd"
+calico_datastore: "etcd"
 
 # Choose Calico iptables backend: "Legacy", "Auto" or "NFT"
 # calico_iptables_backend: "Legacy"
@@ -64,7 +64,7 @@
 
 # Set calico network backend: "bird", "vxlan" or "none"
 # bird enable BGP routing, required for ipip mode.
-# calico_network_backend: bird
+calico_network_backend: none
 
 # IP in IP and VXLAN is mutualy exclusive modes.
 # set IP in IP encapsulation mode: "Always", "CrossSubnet", "Never"
